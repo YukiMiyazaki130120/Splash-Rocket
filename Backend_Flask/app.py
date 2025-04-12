@@ -10,7 +10,7 @@ CORS(app)
 db_config = {
     'host': 'localhost',  # EC2 の場合は 127.0.0.1
     'user': 'root',
-    'password': '',
+    'password': 'Splash123!',
     'database': 'splash_rocket'
 }
 
