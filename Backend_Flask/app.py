@@ -2,58 +2,110 @@ import mysql.connector
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import heapq
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
 
 # MySQL 接続設定
 db_config = {
-    'host': 'localhost',  # EC2 の場合は 127.0.0.1
-    'user': 'root',
-    'password': 'Splash123!',
-    'database': 'splash_rocket'
+    'host': 'splash-rocket-db.cxeai88c4vza.ap-northeast-1.rds.amazonaws.com',
+    'user': 'admin',               # RDS作成時に設定したユーザ名
+    'password': 'Splash123!',  # RDS作成時のパスワード
+    'database': 'splash-rocket-db'   # あなたが作成したデータベース名
 }
+
 
 @app.route('/submit', methods=['POST'])
 def submit_score():
     data = request.get_json()
     username = data.get('username')
     score = data.get('score')
+    uuid = data.get('uuid')
 
-    if not username or score is None:
+    if not username or score is None or uuid is None:
         return jsonify({'error': 'Missing data'}), 400
 
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
-    # 既存ユーザの最高スコアと比較
-    cursor.execute("SELECT score FROM rankings WHERE username = %s ORDER BY score DESC LIMIT 1", (username,))
+    # 既にuuidが存在するか確認
+    cursor.execute("SELECT score FROM rankings WHERE uuid = %s", (uuid,))
     existing = cursor.fetchone()
 
-    if not existing or score > existing[0]:
-        cursor.execute("INSERT INTO rankings (username, score) VALUES (%s, %s)", (username, score))
-        conn.commit()
+    if existing:
+        # 既存スコアより高ければ更新
+        if score > existing[0]:
+            cursor.execute(
+                "UPDATE rankings SET username = %s, score = %s, created_at = CURRENT_TIMESTAMP WHERE uuid = %s",
+                (username, score, uuid)
+            )
+    else:
+        # 新規登録
+        cursor.execute(
+            "INSERT INTO rankings (uuid, username, score) VALUES (%s, %s, %s)",
+            (uuid, username, score)
+        )
 
+    conn.commit()
     cursor.close()
     conn.close()
 
     return jsonify({'message': 'Score submitted successfully'})
 
+
 @app.route('/ranking', methods=['GET'])
 def get_ranking():
+    range_type = request.args.get('range', 'all')  # 'daily', 'weekly', 'monthly', or 'all'
+
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
+    # 日付フィルタ
+    date_filter = ""
+    if range_type == 'daily':
+        date_filter = "WHERE created_at >= NOW() - INTERVAL 1 DAY"
+    elif range_type == 'weekly':
+        date_filter = "WHERE created_at >= NOW() - INTERVAL 7 DAY"
+    elif range_type == 'monthly':
+        date_filter = "WHERE created_at >= NOW() - INTERVAL 1 MONTH"
+
+    # UUID単位の最新スコアを集計
+    query = f"""
         SELECT username, MAX(score) AS score
         FROM rankings
-        GROUP BY username
-    """)
+        {date_filter}
+        GROUP BY uuid
+    """
+    cursor.execute(query)
     all_data = cursor.fetchall()
 
+    # 上位10件抽出
     top_10 = heapq.nlargest(10, all_data, key=lambda x: x['score'])
 
     cursor.close()
     conn.close()
 
     return jsonify({'ranking': top_10})
+
+def init_db():
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS rankings (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            uuid VARCHAR(64) NOT NULL UNIQUE,
+            username VARCHAR(255) NOT NULL,
+            score INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("MySQL rankings テーブル初期化完了")
+
+# Flask アプリのエントリポイント
+if __name__ == '__main__':
+    init_db()  # ← 起動時にDB初期化
+    app.run(host='0.0.0.0', port=5000)
