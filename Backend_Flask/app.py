@@ -12,7 +12,7 @@ db_config = {
     'host': 'splash-rocket-db.cxeai88c4vza.ap-northeast-1.rds.amazonaws.com',
     'user': 'admin',               # RDS作成時に設定したユーザ名
     'password': 'Splash123!',  # RDS作成時のパスワード
-    'database': 'splash-rocket-db'   # あなたが作成したデータベース名
+    'database': 'splash_rocket' 
 }
 
 
