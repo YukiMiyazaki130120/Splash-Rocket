@@ -15,6 +15,9 @@ db_config = {
     'database': 'splash_rocket' 
 }
 
+@app.route('/')
+def health_check():
+    return 'OK', 200
 
 @app.route('/submit', methods=['POST'])
 def submit_score():
