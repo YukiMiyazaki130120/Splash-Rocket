@@ -4,11 +4,13 @@ from flask_cors import CORS
 import heapq
 from datetime import datetime, timedelta
 import logging
+import os
 
 logger = logging.getLogger('flask-app')
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler('tmp/flask-app.log')
+log_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp', 'flask-app.log')
+file_handler = logging.FileHandler(log_path)
 file_handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
