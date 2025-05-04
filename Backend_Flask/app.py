@@ -33,7 +33,7 @@ db_config = {
 
 @app.route('/')
 def health_check():
-    logger.info(f"通信成功！")
+    # logger.info(f"通信成功！")
     return 'OK', 200
 
 @app.route('/submit', methods=['POST'])
