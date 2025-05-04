@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger('flask-app')
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler('/tmp/flask-app.log')
+file_handler = logging.FileHandler('tmp/flask-app.log')
 file_handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s: %(message)s')
