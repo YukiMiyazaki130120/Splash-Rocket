@@ -18,6 +18,8 @@ file_handler.setFormatter(formatter)
 
 logger.addHandler(file_handler)
 
+print("LOG PATH:", log_path)
+
 app = Flask(__name__)
 CORS(app)
 
