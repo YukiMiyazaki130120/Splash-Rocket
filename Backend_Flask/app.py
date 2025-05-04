@@ -3,6 +3,13 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import heapq
 from datetime import datetime, timedelta
+import logging
+
+logging.basicConfig(
+    filename='/home/ec2-user/flask-app.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s'
+)
 
 app = Flask(__name__)
 CORS(app)
@@ -17,6 +24,7 @@ db_config = {
 
 @app.route('/')
 def health_check():
+    logging.info(f"通信成功！")
     return 'OK', 200
 
 @app.route('/submit', methods=['POST'])
@@ -27,6 +35,7 @@ def submit_score():
     uuid = data.get('uuid')
 
     if not username or score is None or uuid is None:
+        logging.error("エラー: データが欠損しています")
         return jsonify({'error': 'Missing data'}), 400
 
     conn = mysql.connector.connect(**db_config)
@@ -39,12 +48,14 @@ def submit_score():
     if existing:
         # 既存スコアより高ければ更新
         if score > existing[0]:
+            logging.info(f"スコアを更新しました！uuid={uuid}, score={score}")
             cursor.execute(
                 "UPDATE rankings SET username = %s, score = %s, created_at = CURRENT_TIMESTAMP WHERE uuid = %s",
                 (username, score, uuid)
             )
     else:
         # 新規登録
+        logging.info(f"スコアを登録しました！username={username}, score={score}！")
         cursor.execute(
             "INSERT INTO rankings (uuid, username, score) VALUES (%s, %s, %s)",
             (uuid, username, score)
@@ -53,7 +64,7 @@ def submit_score():
     conn.commit()
     cursor.close()
     conn.close()
-
+    logging.info(f"スコアの提出が成功しました！")
     return jsonify({'message': 'Score submitted successfully'})
 
 
@@ -88,7 +99,7 @@ def get_ranking():
 
     cursor.close()
     conn.close()
-
+    logging.info(f"ランキング情報を送信しました！")
     return jsonify({'ranking': top_10})
 
 def init_db():
@@ -107,6 +118,7 @@ def init_db():
     cursor.close()
     conn.close()
     print("MySQL rankings テーブル初期化完了")
+    logging.info(f"MySQL rankings テーブル初期化完了")
 
 # Flask アプリのエントリポイント
 if __name__ == '__main__':
