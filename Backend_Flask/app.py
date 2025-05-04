@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import logging
 
 logging.basicConfig(
-    filename='/home/ec2-user/flask-app.log',
+    filename='/tmp/flask-app.log',  # ← /tmpなら書き込み権限あり
     level=logging.INFO,
     format='%(asctime)s %(levelname)s: %(message)s'
 )
