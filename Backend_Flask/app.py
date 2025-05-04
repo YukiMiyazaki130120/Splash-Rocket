@@ -130,6 +130,5 @@ def init_db():
     logger.info(f"MySQL rankings テーブル初期化完了")
 
 # Flask アプリのエントリポイント
-if __name__ == '__main__':
-    init_db()  # ← 起動時にDB初期化
-    app.run(host='0.0.0.0', port=80)
+init_db()
+app.run(host='0.0.0.0', port=80)
