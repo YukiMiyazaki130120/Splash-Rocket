@@ -6,6 +6,12 @@ from datetime import datetime, timedelta
 import logging
 import os
 
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
+CLIENT_ID = "86614275504-02ahm9r0hgme9r3n3b3d6hbp8t0e4e1o.apps.googleusercontent.com"
+
+
 logger = logging.getLogger('flask-app')
 logger.setLevel(logging.INFO)
 
@@ -30,6 +36,24 @@ db_config = {
     'password': 'Splash123!',  # RDS作成時のパスワード
     'database': 'splash_rocket' 
 }
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    token = data.get("idToken")
+
+    if not token:
+        return jsonify({"error": "No token provided"}), 400
+
+    try:
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), CLIENT_ID)
+        userid = idinfo['sub']  # ← ユーザー一意識別子として保存可能
+        name = idinfo.get('name', 'NoName')
+        logger.info(f"Googleログイン成功: user={name}, id={userid}")
+        return jsonify({"userId": userid, "username": name}), 200
+    except ValueError:
+        logger.error("無効なIDトークンです")
+        return jsonify({"error": "Invalid token"}), 400
 
 @app.route('/')
 def health_check():
